@@ -1,4 +1,5 @@
-/**
+
+
  * إدارة وضع السمة الداكنة/الفاتحة
  */
 document.addEventListener('DOMContentLoaded', function() {
@@ -77,4 +78,5 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
         const newTheme = e.matches ? 'dark' : 'light';
         applyTheme(newTheme);
     }
+
 });
