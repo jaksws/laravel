@@ -1,82 +1,82 @@
-/**
- * Dark mode functionality for RTLA v2.0
+
+
+ * إدارة وضع السمة الداكنة/الفاتحة
  */
 document.addEventListener('DOMContentLoaded', function() {
-    const darkModeEnabled = window.darkModeSettings?.enabled || false;
+    // تحقق من تفضيلات المستخدم أو القيمة الافتراضية
+    const currentTheme = localStorage.getItem('theme') || 'light';
     
-    if (!darkModeEnabled) {
-        return;
-    }
+    // تطبيق السمة عند تحميل الصفحة
+    applyTheme(currentTheme);
     
-    const darkModeToggle = document.getElementById('dark-mode-toggle');
-    const htmlElement = document.documentElement;
-    
-    // Initialize dark mode from saved preference or system preference
-    function initDarkMode() {
-        const savedTheme = localStorage.getItem('theme');
-        
-        if (savedTheme) {
-            applyTheme(savedTheme);
-        } else if (window.darkModeSettings?.default === 'system') {
-            // Check system preference
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                applyTheme('dark');
-            } else {
-                applyTheme('light');
-            }
+    // إعداد مستمع الحدث لزر تبديل السمة
+    const themeToggle = document.querySelector('.theme-toggle-btn');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
-            // Listen for system preference changes
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-                applyTheme(event.matches ? 'dark' : 'light');
-            });
-        } else {
-            // Apply default theme
-            applyTheme(window.darkModeSettings?.default || 'light');
-        }
+            // تطبيق السمة الجديدة
+            applyTheme(newTheme);
+            
+            // حفظ التفضيل عبر AJAX
+            saveThemePreference(newTheme);
+        });
+    }
+});
+
+/**
+ * تطبيق السمة على المستند
+ * @param {string} theme - 'light', 'dark', or 'auto'
+ */
+function applyTheme(theme) {
+    // إذا كانت السمة تلقائية، استخدم تفضيلات النظام
+    if (theme === 'auto') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        theme = prefersDark ? 'dark' : 'light';
     }
     
-    // Apply specified theme
-    function applyTheme(theme) {
+    // تطبيق السمة على عنصر HTML
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    // تحديث أيقونة الزر
+    const themeIcon = document.querySelector('.theme-icon');
+    if (themeIcon) {
         if (theme === 'dark') {
-            htmlElement.classList.add('dark');
+            themeIcon.classList.remove('fa-moon');
+            themeIcon.classList.add('fa-sun');
         } else {
-            htmlElement.classList.remove('dark');
-        }
-        
-        // Update toggle button if it exists
-        if (darkModeToggle) {
-            darkModeToggle.setAttribute('aria-checked', theme === 'dark');
-        }
-        
-        // Save theme preference
-        localStorage.setItem('theme', theme);
-    }
-    
-    // Toggle between dark and light mode
-    function toggleDarkMode() {
-        const isDark = htmlElement.classList.contains('dark');
-        applyTheme(isDark ? 'light' : 'dark');
-        
-        // Send theme preference to server if user is logged in
-        if (window.userId) {
-            fetch('/api/user/preferences/theme', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    theme: localStorage.getItem('theme')
-                })
-            });
+            themeIcon.classList.remove('fa-sun');
+            themeIcon.classList.add('fa-moon');
         }
     }
     
-    // Setup dark mode toggle if present
-    if (darkModeToggle) {
-        darkModeToggle.addEventListener('click', toggleDarkMode);
+    // حفظ في التخزين المحلي للمتصفح
+    localStorage.setItem('theme', theme);
+}
+
+/**
+ * حفظ تفضيل السمة في قاعدة البيانات عبر AJAX
+ * @param {string} theme
+ */
+function saveThemePreference(theme) {
+    fetch('/theme/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ theme: theme })
+    })
+    .then(response => response.json())
+    .catch(error => console.error('Error saving theme preference:', error));
+}
+
+// استمع إلى تغييرات في تفضيلات النظام إذا كان الوضع تلقائيًا
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+    if (localStorage.getItem('theme') === 'auto') {
+        const newTheme = e.matches ? 'dark' : 'light';
+        applyTheme(newTheme);
     }
-    
-    // Initialize dark mode
-    initDarkMode();
+
 });
